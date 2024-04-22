@@ -1,4 +1,4 @@
-# arp-sniffer-ebpf
+# arp-monitor-ebpf
 
 Program for the arp monitoring with eBPF using TC like hook point
 
