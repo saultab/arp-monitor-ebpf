@@ -59,13 +59,16 @@ int handle_event(void *ctx, void *data, size_t data_sz)
 	const struct event *e = data;
 
 	char ts[32];
+	char filename[32];
 	time_t t;
 
 	time(&t);
 	struct tm tm = *localtime(&t);
 	strftime(ts, sizeof(ts), "%H:%M:%S", &tm);
+	strftime(filename, sizeof(ts), "%Y-%m-%d", &tm);
+    strcat(filename, ".txt");
 
-	FILE *fp = fopen(ts, "a");
+	FILE *fp = fopen(filename, "a");
 	if (fp == NULL)
 	{
 		fprintf(stderr, "Error");
