@@ -57,24 +57,37 @@ static char *opcode_to_text(__u16 opcode)
 int handle_event(void *ctx, void *data, size_t data_sz)
 {
 	const struct event *e = data;
-	struct tm *tm;
+
 	char ts[32];
 	time_t t;
 
 	time(&t);
-	tm = localtime(&t);
-	strftime(ts, sizeof(ts), "%H:%M:%S", tm);
+	struct tm tm = *localtime(&t);
+	strftime(ts, sizeof(ts), "%H:%M:%S", &tm);
 
-	printf("%-8s\t", ts);
-	printf("%s\t\t", opcode_to_text(e->ar_op));
-	printf("%02x:%02x:%02x:%02x:%02x:%02x\t", e->ar_sha[0], e->ar_sha[1], e->ar_sha[2], e->ar_sha[3], e->ar_sha[4], e->ar_sha[5]);
-	printf("%d.%d.%d.%d\t\t", e->ar_sip[0], e->ar_sip[1], e->ar_sip[2], e->ar_sip[3]);
-	printf("%02x:%02x:%02x:%02x:%02x:%02x\t", e->ar_tha[0], e->ar_tha[1], e->ar_tha[2], e->ar_tha[3], e->ar_tha[4], e->ar_tha[5]);
-	printf("%d.%d.%d.%d\n", e->ar_tip[0], e->ar_tip[1], e->ar_tip[2], e->ar_tip[3]);
+	FILE *fp = fopen(ts, "a");
+	if (fp == NULL)
+	{
+		fprintf(stderr, "Error");
+		return -1;
+	}
+
+	fprintf(fp, "%-8s\t", ts);
+	fprintf(fp, "%s\t\t", opcode_to_text(e->ar_op));
+	fprintf(fp, "%02x:%02x:%02x:%02x:%02x:%02x\t", e->ar_sha[0], e->ar_sha[1], e->ar_sha[2], e->ar_sha[3], e->ar_sha[4], e->ar_sha[5]);
+	fprintf(fp, "%d.%d.%d.%d\t\t", e->ar_sip[0], e->ar_sip[1], e->ar_sip[2], e->ar_sip[3]);
+	fprintf(fp, "%02x:%02x:%02x:%02x:%02x:%02x\t", e->ar_tha[0], e->ar_tha[1], e->ar_tha[2], e->ar_tha[3], e->ar_tha[4], e->ar_tha[5]);
+	fprintf(fp, "%d.%d.%d.%d\n", e->ar_tip[0], e->ar_tip[1], e->ar_tip[2], e->ar_tip[3]);
+
+	fprintf(stdout, "%-8s\t", ts);
+	fprintf(stdout, "%s\t\t", opcode_to_text(e->ar_op));
+	fprintf(stdout, "%02x:%02x:%02x:%02x:%02x:%02x\t", e->ar_sha[0], e->ar_sha[1], e->ar_sha[2], e->ar_sha[3], e->ar_sha[4], e->ar_sha[5]);
+	fprintf(stdout, "%d.%d.%d.%d\t\t", e->ar_sip[0], e->ar_sip[1], e->ar_sip[2], e->ar_sip[3]);
+	fprintf(stdout, "%02x:%02x:%02x:%02x:%02x:%02x\t", e->ar_tha[0], e->ar_tha[1], e->ar_tha[2], e->ar_tha[3], e->ar_tha[4], e->ar_tha[5]);
+	fprintf(stdout, "%d.%d.%d.%d\n", e->ar_tip[0], e->ar_tip[1], e->ar_tip[2], e->ar_tip[3]);
 
 	return 0;
 }
-
 int main(int argc, char **argv)
 {
 	/* Set up libbpf logging callback */
