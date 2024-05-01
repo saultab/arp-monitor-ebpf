@@ -66,7 +66,7 @@ int handle_event(void *ctx, void *data, size_t data_sz)
 	struct tm tm = *localtime(&t);
 	strftime(ts, sizeof(ts), "%H:%M:%S", &tm);
 	strftime(filename, sizeof(ts), "%Y-%m-%d", &tm);
-    strcat(filename, ".txt");
+    	strcat(filename, ".txt");
 
 	FILE *fp = fopen(filename, "a");
 	if (fp == NULL)
@@ -81,7 +81,8 @@ int handle_event(void *ctx, void *data, size_t data_sz)
 	fprintf(fp, "%d.%d.%d.%d\t\t", e->ar_sip[0], e->ar_sip[1], e->ar_sip[2], e->ar_sip[3]);
 	fprintf(fp, "%02x:%02x:%02x:%02x:%02x:%02x\t", e->ar_tha[0], e->ar_tha[1], e->ar_tha[2], e->ar_tha[3], e->ar_tha[4], e->ar_tha[5]);
 	fprintf(fp, "%d.%d.%d.%d\n", e->ar_tip[0], e->ar_tip[1], e->ar_tip[2], e->ar_tip[3]);
-
+	fclose(fp);
+	
 	fprintf(stdout, "%-8s\t", ts);
 	fprintf(stdout, "%s\t\t", opcode_to_text(e->ar_op));
 	fprintf(stdout, "%02x:%02x:%02x:%02x:%02x:%02x\t", e->ar_sha[0], e->ar_sha[1], e->ar_sha[2], e->ar_sha[3], e->ar_sha[4], e->ar_sha[5]);
