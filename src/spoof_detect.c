@@ -20,9 +20,7 @@ void spoof_detector_init(struct spoof_detector *sd, uint32_t threshold)
     sd->threshold = threshold > 0 ? threshold : DEFAULT_SPOOF_THRESHOLD;
 }
 
-bool spoof_detector_update(struct spoof_detector *sd,
-                           uint32_t ip_net_order,
-                           const uint8_t mac[6],
+bool spoof_detector_update(struct spoof_detector *sd, uint32_t ip_net_order, const uint8_t mac[6],
                            uint32_t *flip_count_out)
 {
     uint32_t idx = hash_ip(ip_net_order);

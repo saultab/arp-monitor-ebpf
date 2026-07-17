@@ -7,9 +7,9 @@
  * Maintains an IP→MAC hash map for kernel-side spoof detection.
  */
 #include "vmlinux.h"
-#include <bpf/bpf_helpers.h>
-#include <bpf/bpf_endian.h>
 #include <bpf/bpf_core_read.h>
+#include <bpf/bpf_endian.h>
+#include <bpf/bpf_helpers.h>
 
 /* Include shared definitions */
 #include "arp_monitor.h"
@@ -26,15 +26,15 @@
 
 /* Minimal ARP header for IPv4 over Ethernet */
 struct arp_hdr {
-    __be16 ar_hrd;      /* Hardware type */
-    __be16 ar_pro;      /* Protocol type */
-    __u8   ar_hln;      /* Hardware address length */
-    __u8   ar_pln;      /* Protocol address length */
-    __be16 ar_op;       /* ARP opcode */
-    __u8   ar_sha[6];   /* Sender hardware address */
-    __u8   ar_sip[4];   /* Sender protocol address */
-    __u8   ar_tha[6];   /* Target hardware address */
-    __u8   ar_tip[4];   /* Target protocol address */
+    __be16 ar_hrd;  /* Hardware type */
+    __be16 ar_pro;  /* Protocol type */
+    __u8 ar_hln;    /* Hardware address length */
+    __u8 ar_pln;    /* Protocol address length */
+    __be16 ar_op;   /* ARP opcode */
+    __u8 ar_sha[6]; /* Sender hardware address */
+    __u8 ar_sip[4]; /* Sender protocol address */
+    __u8 ar_tha[6]; /* Target hardware address */
+    __u8 ar_tip[4]; /* Target protocol address */
 } __attribute__((packed));
 
 /* Ring buffer map for sending events to userspace */
@@ -61,14 +61,13 @@ struct {
 
 static __always_inline int mac_equal(const __u8 *a, const __u8 *b)
 {
-    return a[0] == b[0] && a[1] == b[1] && a[2] == b[2] &&
-           a[3] == b[3] && a[4] == b[4] && a[5] == b[5];
+    return a[0] == b[0] && a[1] == b[1] && a[2] == b[2] && a[3] == b[3] && a[4] == b[4] &&
+           a[5] == b[5];
 }
 
 static __always_inline __u32 ip_from_bytes(const __u8 *ip)
 {
-    return (__u32)ip[0] | (__u32)ip[1] << 8 |
-           (__u32)ip[2] << 16 | (__u32)ip[3] << 24;
+    return (__u32)ip[0] | (__u32)ip[1] << 8 | (__u32)ip[2] << 16 | (__u32)ip[3] << 24;
 }
 
 SEC("tc")
@@ -109,7 +108,7 @@ int arp_monitor(struct __sk_buff *ctx)
     e->flags = 0;
 
     /* Spoof detection: check if MAC changed for this IP */
-    struct ip_mac_key key = { .ip = ip_from_bytes(arp->ar_sip) };
+    struct ip_mac_key key = {.ip = ip_from_bytes(arp->ar_sip)};
     struct ip_mac_value *existing = bpf_map_lookup_elem(&ip_mac_map, &key);
 
     if (existing) {

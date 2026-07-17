@@ -3,8 +3,8 @@
  * log.c - Structured logging implementation
  */
 #include "log.h"
-#include <string.h>
 #include <errno.h>
+#include <string.h>
 
 /* Use syslog priority constants with their full names to avoid macro conflicts */
 #define SYSLOG_DEBUG   LOG_DEBUG
@@ -20,16 +20,16 @@ static struct log_config g_log = {
 
 static const char *level_str[] = {
     [LOG_LVL_DEBUG] = "DEBUG",
-    [LOG_LVL_INFO]  = "INFO",
-    [LOG_LVL_WARN]  = "WARN",
-    [LOG_LVL_ERR]   = "ERROR",
+    [LOG_LVL_INFO] = "INFO",
+    [LOG_LVL_WARN] = "WARN",
+    [LOG_LVL_ERR] = "ERROR",
 };
 
 static int level_to_syslog[] = {
     [LOG_LVL_DEBUG] = SYSLOG_DEBUG,
-    [LOG_LVL_INFO]  = SYSLOG_INFO,
-    [LOG_LVL_WARN]  = SYSLOG_WARNING,
-    [LOG_LVL_ERR]   = SYSLOG_ERR,
+    [LOG_LVL_INFO] = SYSLOG_INFO,
+    [LOG_LVL_WARN] = SYSLOG_WARNING,
+    [LOG_LVL_ERR] = SYSLOG_ERR,
 };
 
 void log_init(struct log_config *cfg)
@@ -49,8 +49,7 @@ void log_cleanup(void)
         fclose(g_log.file);
 }
 
-void log_msg(enum log_level level, const char *file, int line,
-             const char *fmt, ...)
+void log_msg(enum log_level level, const char *file, int line, const char *fmt, ...)
 {
     if (level < g_log.level)
         return;
@@ -75,8 +74,7 @@ void log_msg(enum log_level level, const char *file, int line,
     char timebuf[32];
     strftime(timebuf, sizeof(timebuf), "%Y-%m-%dT%H:%M:%S", &tm);
 
-    fprintf(out, "%s.%03ld [%-5s]", timebuf, ts.tv_nsec / 1000000,
-            level_str[level]);
+    fprintf(out, "%s.%03ld [%-5s]", timebuf, ts.tv_nsec / 1000000, level_str[level]);
 
     if (level == LOG_LVL_DEBUG)
         fprintf(out, " %s:%d", file, line);
