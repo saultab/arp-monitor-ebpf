@@ -24,30 +24,6 @@ This project demonstrates production-grade competency in:
 
 ---
 
-## Demo
-
-> **Capture these screenshots/GIFs for your portfolio:**
-
-### Real-time ARP monitoring
-![Real-time ARP monitoring](docs/screenshots/monitor-live.png)
-
-### ARP Spoofing Detection
-![ARP spoof detection alert](docs/screenshots/spoof-detection.png)
-
-### Structured JSON Output
-![JSON output mode](docs/screenshots/json-output.png)
-
-### BPF Program Loaded (bpftool)
-![bpftool prog show](docs/screenshots/bpftool-prog-show.png)
-
-### BPF Map State
-![bpftool map dump](docs/screenshots/bpftool-map-dump.png)
-
-### Architecture Diagram
-![Architecture](docs/architecture.png)
-
----
-
 ## Tech Stack
 
 | Component | Technology |
@@ -331,7 +307,7 @@ sudo cat /sys/kernel/debug/tracing/trace_pipe
 
 ## License
 
-[MIT License](LICENSE) — Copyright (c) 2024 saultab
+[MIT License](LICENSE) — Copyright (c) 2026 saultab
 
 ---
 

@@ -6,6 +6,7 @@
  * events, performs spoof detection, and outputs results.
  */
 #define _GNU_SOURCE
+#include <arpa/inet.h>
 #include <errno.h>
 #include <getopt.h>
 #include <net/if.h>
@@ -14,21 +15,20 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
 #include <time.h>
 #include <unistd.h>
-#include <arpa/inet.h>
-#include <sys/stat.h>
 
 #include <bpf/bpf.h>
 #include <bpf/libbpf.h>
 
-#include "arp_monitor.skel.h"
 #include "arp_monitor.h"
+#include "arp_monitor.skel.h"
 #include "log.h"
 #include "spoof_detect.h"
 
-#define PROGRAM_NAME    "arp-monitor"
-#define VERSION         "2.0.0"
+#define PROGRAM_NAME "arp-monitor"
+#define VERSION      "2.0.0"
 
 /* ─── CLI Options ─────────────────────────────────────────────────────── */
 
@@ -83,8 +83,7 @@ static void setup_signals(void)
 
 /* ─── libbpf Print Callback ──────────────────────────────────────────── */
 
-static int libbpf_print_fn(enum libbpf_print_level level,
-                           const char *format, va_list args)
+static int libbpf_print_fn(enum libbpf_print_level level, const char *format, va_list args)
 {
     if (!g_cfg.verbose && level >= LIBBPF_DEBUG)
         return 0;
@@ -95,8 +94,8 @@ static int libbpf_print_fn(enum libbpf_print_level level,
 
 static void format_mac(const uint8_t mac[6], char *buf, size_t len)
 {
-    snprintf(buf, len, "%02x:%02x:%02x:%02x:%02x:%02x",
-             mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+    snprintf(buf, len, "%02x:%02x:%02x:%02x:%02x:%02x", mac[0], mac[1], mac[2], mac[3], mac[4],
+             mac[5]);
 }
 
 static void format_ip(const uint8_t ip[4], char *buf, size_t len)
@@ -107,9 +106,12 @@ static void format_ip(const uint8_t ip[4], char *buf, size_t len)
 static const char *opcode_str(uint16_t op)
 {
     switch (op) {
-    case ARP_OP_REQUEST: return "REQUEST";
-    case ARP_OP_REPLY:   return "REPLY";
-    default:             return "UNKNOWN";
+    case ARP_OP_REQUEST:
+        return "REQUEST";
+    case ARP_OP_REPLY:
+        return "REPLY";
+    default:
+        return "UNKNOWN";
     }
 }
 
@@ -128,8 +130,8 @@ static void print_event_text(const struct arp_event *e, bool spoof, uint32_t fli
     format_mac(e->ar_tha, tmac, sizeof(tmac));
     format_ip(e->ar_tip, tip, sizeof(tip));
 
-    fprintf(stdout, "%-8s  %-7s  %-17s  %-15s  %-17s  %-15s",
-            ts, opcode_str(e->ar_op), smac, sip, tmac, tip);
+    fprintf(stdout, "%-8s  %-7s  %-17s  %-15s  %-17s  %-15s", ts, opcode_str(e->ar_op), smac, sip,
+            tmac, tip);
 
     if (spoof)
         fprintf(stdout, "  [SPOOF ALERT flips=%u]", flips);
@@ -161,12 +163,8 @@ static void print_event_json(const struct arp_event *e, bool spoof, uint32_t fli
             "\"spoof_detected\":%s,"
             "\"flip_count\":%u,"
             "\"new_host\":%s}\n",
-            now.tv_sec, now.tv_nsec / 1000000,
-            opcode_str(e->ar_op),
-            smac, sip, tmac, tip,
-            spoof ? "true" : "false",
-            flips,
-            (e->flags & EVENT_FLAG_NEW_HOST) ? "true" : "false");
+            now.tv_sec, now.tv_nsec / 1000000, opcode_str(e->ar_op), smac, sip, tmac, tip,
+            spoof ? "true" : "false", flips, (e->flags & EVENT_FLAG_NEW_HOST) ? "true" : "false");
     fflush(stdout);
 }
 
@@ -177,8 +175,7 @@ static int handle_event(void *ctx, void *data, size_t data_sz)
     (void)ctx;
 
     if (data_sz < sizeof(struct arp_event)) {
-        LOGW("Received truncated event (%zu < %zu)", data_sz,
-                 sizeof(struct arp_event));
+        LOGW("Received truncated event (%zu < %zu)", data_sz, sizeof(struct arp_event));
         return 0;
     }
 
@@ -188,13 +185,11 @@ static int handle_event(void *ctx, void *data, size_t data_sz)
     /* Userspace spoof detection (mirrors kernel-side, for logging) */
     uint32_t sender_ip;
     memcpy(&sender_ip, e->ar_sip, 4);
-    bool spoof = spoof_detector_update(&g_detector, sender_ip,
-                                       e->ar_sha, &flip_count);
+    bool spoof = spoof_detector_update(&g_detector, sender_ip, e->ar_sha, &flip_count);
 
     if (spoof)
-        LOGW("ARP spoof detected: IP %u.%u.%u.%u MAC changed (flips=%u)",
-                 e->ar_sip[0], e->ar_sip[1], e->ar_sip[2], e->ar_sip[3],
-                 flip_count);
+        LOGW("ARP spoof detected: IP %u.%u.%u.%u MAC changed (flips=%u)", e->ar_sip[0],
+             e->ar_sip[1], e->ar_sip[2], e->ar_sip[3], flip_count);
 
     if (g_cfg.json_output)
         print_event_json(e, spoof, flip_count);
@@ -209,35 +204,35 @@ static int handle_event(void *ctx, void *data, size_t data_sz)
 static void print_usage(const char *prog)
 {
     fprintf(stderr,
-        "Usage: %s [OPTIONS] -i <interface>\n"
-        "\n"
-        "eBPF-based ARP traffic monitor with spoof detection\n"
-        "\n"
-        "Options:\n"
-        "  -i, --interface <name>   Network interface to monitor (required)\n"
-        "  -v, --verbose            Enable verbose/debug output\n"
-        "  -j, --json               Output events as JSON (one per line)\n"
-        "  -d, --daemon             Run in background (daemon mode)\n"
-        "  -t, --threshold <N>      MAC flip threshold for spoof alert (default: %u)\n"
-        "  -l, --log-file <path>    Write logs to file instead of stderr\n"
-        "  -w, --whitelist <path>   IP-MAC whitelist file (one per line: IP MAC)\n"
-        "  -V, --version            Show version and exit\n"
-        "  -h, --help               Show this help\n",
-        prog, DEFAULT_SPOOF_THRESHOLD);
+            "Usage: %s [OPTIONS] -i <interface>\n"
+            "\n"
+            "eBPF-based ARP traffic monitor with spoof detection\n"
+            "\n"
+            "Options:\n"
+            "  -i, --interface <name>   Network interface to monitor (required)\n"
+            "  -v, --verbose            Enable verbose/debug output\n"
+            "  -j, --json               Output events as JSON (one per line)\n"
+            "  -d, --daemon             Run in background (daemon mode)\n"
+            "  -t, --threshold <N>      MAC flip threshold for spoof alert (default: %u)\n"
+            "  -l, --log-file <path>    Write logs to file instead of stderr\n"
+            "  -w, --whitelist <path>   IP-MAC whitelist file (one per line: IP MAC)\n"
+            "  -V, --version            Show version and exit\n"
+            "  -h, --help               Show this help\n",
+            prog, DEFAULT_SPOOF_THRESHOLD);
 }
 
 static int parse_args(int argc, char **argv)
 {
     static const struct option long_opts[] = {
         {"interface", required_argument, NULL, 'i'},
-        {"verbose",   no_argument,       NULL, 'v'},
-        {"json",      no_argument,       NULL, 'j'},
-        {"daemon",    no_argument,       NULL, 'd'},
+        {"verbose", no_argument, NULL, 'v'},
+        {"json", no_argument, NULL, 'j'},
+        {"daemon", no_argument, NULL, 'd'},
         {"threshold", required_argument, NULL, 't'},
-        {"log-file",  required_argument, NULL, 'l'},
+        {"log-file", required_argument, NULL, 'l'},
         {"whitelist", required_argument, NULL, 'w'},
-        {"version",   no_argument,       NULL, 'V'},
-        {"help",      no_argument,       NULL, 'h'},
+        {"version", no_argument, NULL, 'V'},
+        {"help", no_argument, NULL, 'h'},
         {NULL, 0, NULL, 0},
     };
 
@@ -261,8 +256,7 @@ static int parse_args(int argc, char **argv)
             char *endptr = NULL;
             errno = 0;
             long val = strtol(optarg, &endptr, 10);
-            if (errno != 0 || endptr == optarg || *endptr != '\0' ||
-                val <= 0 || val > 10000) {
+            if (errno != 0 || endptr == optarg || *endptr != '\0' || val <= 0 || val > 10000) {
                 fprintf(stderr, "Invalid threshold: %s (must be integer 1-10000)\n", optarg);
                 return -1;
             }
@@ -295,8 +289,7 @@ static int parse_args(int argc, char **argv)
 
     g_cfg.ifindex = if_nametoindex(g_cfg.ifname);
     if (g_cfg.ifindex == 0) {
-        fprintf(stderr, "Error: interface '%s' not found: %s\n",
-                g_cfg.ifname, strerror(errno));
+        fprintf(stderr, "Error: interface '%s' not found: %s\n", g_cfg.ifname, strerror(errno));
         return -1;
     }
 
@@ -311,7 +304,7 @@ static int daemonize(void)
     if (pid < 0)
         return -1;
     if (pid > 0)
-        exit(0);  /* Parent exits */
+        exit(0); /* Parent exits */
 
     if (setsid() < 0)
         return -1;
@@ -373,8 +366,7 @@ int main(int argc, char **argv)
     if (g_cfg.log_file) {
         log_cfg.file = fopen(g_cfg.log_file, "a");
         if (!log_cfg.file) {
-            fprintf(stderr, "Cannot open log file '%s': %s\n",
-                    g_cfg.log_file, strerror(errno));
+            fprintf(stderr, "Cannot open log file '%s': %s\n", g_cfg.log_file, strerror(errno));
             return 1;
         }
     }
@@ -394,9 +386,8 @@ int main(int argc, char **argv)
     /* Initialize spoof detector */
     spoof_detector_init(&g_detector, g_cfg.spoof_threshold);
 
-    LOGI("Starting %s v%s on interface %s (idx=%u, threshold=%u)",
-             PROGRAM_NAME, VERSION, g_cfg.ifname, g_cfg.ifindex,
-             g_cfg.spoof_threshold);
+    LOGI("Starting %s v%s on interface %s (idx=%u, threshold=%u)", PROGRAM_NAME, VERSION,
+         g_cfg.ifname, g_cfg.ifindex, g_cfg.spoof_threshold);
 
     /* Set libbpf print callback */
     libbpf_set_print(libbpf_print_fn);
@@ -431,8 +422,7 @@ int main(int argc, char **argv)
     LOGD("TC ingress hook created");
 
     /* Attach BPF program to ingress */
-    LIBBPF_OPTS(bpf_tc_opts, tc_opts_ingress,
-                .handle = 1, .priority = 1,
+    LIBBPF_OPTS(bpf_tc_opts, tc_opts_ingress, .handle = 1, .priority = 1,
                 .prog_fd = bpf_program__fd(g_skel->progs.arp_monitor));
     err = bpf_tc_attach(&g_hook_ingress, &tc_opts_ingress);
     if (err == -EEXIST) {
@@ -449,8 +439,7 @@ int main(int argc, char **argv)
     LOGD("BPF program attached to TC ingress");
 
     /* Attach BPF program to egress */
-    LIBBPF_OPTS(bpf_tc_opts, tc_opts_egress,
-                .handle = 2, .priority = 1,
+    LIBBPF_OPTS(bpf_tc_opts, tc_opts_egress, .handle = 2, .priority = 1,
                 .prog_fd = bpf_program__fd(g_skel->progs.arp_monitor));
     err = bpf_tc_attach(&g_hook_egress, &tc_opts_egress);
     if (err == -EEXIST) {
@@ -466,8 +455,7 @@ int main(int argc, char **argv)
     LOGD("BPF program attached to TC egress");
 
     /* Set up ring buffer polling */
-    g_rb = ring_buffer__new(bpf_map__fd(g_skel->maps.events),
-                            handle_event, NULL, NULL);
+    g_rb = ring_buffer__new(bpf_map__fd(g_skel->maps.events), handle_event, NULL, NULL);
     if (!g_rb) {
         LOGE("Failed to create ring buffer: %s", strerror(errno));
         err = 1;
@@ -476,9 +464,8 @@ int main(int argc, char **argv)
 
     /* Print header (text mode only) */
     if (!g_cfg.json_output) {
-        printf("%-8s  %-7s  %-17s  %-15s  %-17s  %-15s  %s\n",
-               "TIME", "TYPE", "SENDER MAC", "SENDER IP",
-               "TARGET MAC", "TARGET IP", "FLAGS");
+        printf("%-8s  %-7s  %-17s  %-15s  %-17s  %-15s  %s\n", "TIME", "TYPE", "SENDER MAC",
+               "SENDER IP", "TARGET MAC", "TARGET IP", "FLAGS");
         printf("─────────────────────────────────────────────────────"
                "───────────────────────────────────────────────────\n");
     }
