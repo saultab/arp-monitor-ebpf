@@ -4,10 +4,10 @@
  *
  * Minimal test framework (no external dependencies).
  */
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
 #include <assert.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include "spoof_detect.h"
 
@@ -15,23 +15,25 @@ static int tests_run = 0;
 static int tests_passed = 0;
 
 #define TEST(name) static void name(void)
-#define RUN_TEST(name) do { \
-    printf("  %-50s", #name); \
-    tests_run++; \
-    name(); \
-    tests_passed++; \
-    printf(" PASS\n"); \
-} while(0)
+#define RUN_TEST(name)                                                                             \
+    do {                                                                                           \
+        printf("  %-50s", #name);                                                                  \
+        tests_run++;                                                                               \
+        name();                                                                                    \
+        tests_passed++;                                                                            \
+        printf(" PASS\n");                                                                         \
+    } while (0)
 
-#define ASSERT_TRUE(expr) do { \
-    if (!(expr)) { \
-        printf(" FAIL (%s:%d: %s)\n", __FILE__, __LINE__, #expr); \
-        exit(1); \
-    } \
-} while(0)
+#define ASSERT_TRUE(expr)                                                                          \
+    do {                                                                                           \
+        if (!(expr)) {                                                                             \
+            printf(" FAIL (%s:%d: %s)\n", __FILE__, __LINE__, #expr);                              \
+            exit(1);                                                                               \
+        }                                                                                          \
+    } while (0)
 
 #define ASSERT_FALSE(expr) ASSERT_TRUE(!(expr))
-#define ASSERT_EQ(a, b) ASSERT_TRUE((a) == (b))
+#define ASSERT_EQ(a, b)    ASSERT_TRUE((a) == (b))
 
 /* ─── Test Cases ──────────────────────────────────────────────────────── */
 
