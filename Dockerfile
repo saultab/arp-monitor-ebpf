@@ -1,23 +1,39 @@
- # Stage 1: Building
+# SPDX-License-Identifier: MIT
+# Multi-stage build for arp-monitor-ebpf
+
+# Stage 1: Build
 FROM ubuntu:22.04 AS builder
 
-RUN apt-get update && \
-    apt-get install -y clang libelf-dev zlib1g-dev gcc-multilib make pkg-config llvm git
+ENV DEBIAN_FRONTEND=noninteractive
 
-WORKDIR /usr/src/app
-RUN git clone https://github.com/saultab/arp-monitor-ebpf.git
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    clang llvm llvm-dev \
+    libelf-dev zlib1g-dev \
+    gcc make pkg-config \
+    linux-tools-common \
+    git ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
 
-WORKDIR /usr/src/app/arp-monitor-ebpf
-RUN git submodule update --init --recursive
-RUN cd libbpf/src && make && make install && ldconfig /usr/lib64
-RUN cd bpftool/src && make && make install
-RUN make
+WORKDIR /build
+COPY . .
 
-# Stage 2: Runtime environment
+RUN git submodule update --init --recursive || true
+RUN if [ -d libbpf/src ]; then \
+        cd libbpf/src && make BUILD_STATIC_ONLY=1 && make install && ldconfig; \
+    fi
+RUN if [ -d bpftool/src ]; then \
+        cd bpftool/src && make && make install; \
+    fi
+RUN make V=1
+
+# Stage 2: Runtime
 FROM ubuntu:22.04
 
-COPY --from=builder /usr/src/app/arp-monitor-ebpf/ringbuf-reserve-submit /usr/local/bin/
-RUN apt-get update
-RUN apt-get install -y libelf-dev && ldconfig
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libelf1 \
+    && rm -rf /var/lib/apt/lists/*
 
-CMD ["ringbuf-reserve-submit", "eth0"]
+COPY --from=builder /build/arp-monitor /usr/local/bin/arp-monitor
+
+ENTRYPOINT ["arp-monitor"]
+CMD ["-h"]
